@@ -44,6 +44,57 @@ function formatShare(value, total) {
   return `${((value / total) * 100).toFixed(1).replace(".", ",")}%`;
 }
 
+function formatKeywordRows(rows) {
+  const filtered = rows.filter((row) => {
+    const term = row.dimensionValues[0].value || "";
+    return term && term !== "(not provided)" && term !== "(not set)";
+  });
+
+  const total = filtered.reduce(
+    (sum, row) => sum + Number(row.metricValues[0].value),
+    0
+  );
+
+  return filtered.slice(0, 8).map((row) => {
+    const term = row.dimensionValues[0].value;
+    const sessions = Number(row.metricValues[0].value);
+    return [term, sessions, formatShare(sessions, total)];
+  });
+}
+
+async function fetchKeywords(client, propertyId, dateRange) {
+  const queries = [
+    {
+      dimensions: [{ name: "organicGoogleSearchQuery" }],
+      note: "searchConsole",
+    },
+    {
+      dimensions: [{ name: "sessionManualTerm" }],
+      note: "utmTerm",
+    },
+  ];
+
+  for (const query of queries) {
+    try {
+      const rows = await runReport(client, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: query.dimensions,
+        metrics: [{ name: "sessions" }],
+        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+        limit: 10,
+      });
+      const keywords = formatKeywordRows(rows);
+      if (keywords.length) {
+        return { keywords, source: query.note };
+      }
+    } catch (error) {
+      console.warn(`Keyword query failed (${query.note}):`, error.message);
+    }
+  }
+
+  return { keywords: [], source: null };
+}
+
 function parseCredentials() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (raw) {
@@ -182,6 +233,7 @@ module.exports = async function handler(req, res) {
       referrerRows,
       deviceRows,
       sessionRows,
+      keywordResult,
     ] = await Promise.all([
       runReport(client, propertyId, {
         dateRanges: [dateRange],
@@ -235,6 +287,7 @@ module.exports = async function handler(req, res) {
         dateRanges: [dateRange],
         metrics: [{ name: "averageSessionDuration" }],
       }),
+      fetchKeywords(client, propertyId, dateRange),
     ]);
 
     const dailyMap = rowsByDate(dailyRows);
@@ -285,6 +338,8 @@ module.exports = async function handler(req, res) {
       return [source, sessions, formatShare(sessions, referrerTotal)];
     });
 
+    const { keywords, source: keywordSource } = keywordResult;
+
     const deviceTotal = deviceRows.reduce(
       (sum, row) => sum + Number(row.metricValues[0].value),
       0
@@ -324,6 +379,8 @@ module.exports = async function handler(req, res) {
       topPages,
       trafficSources,
       referrers,
+      keywords,
+      keywordSource,
       devices,
       avgSessionMinutes,
     });
