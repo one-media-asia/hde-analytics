@@ -24,6 +24,7 @@
         <a class="nav-item active" href="#overview">Översikt</a>
         <a class="nav-item" href="#traffic">Trafik</a>
         <a class="nav-item" href="#pages">Sidor</a>
+        <a class="nav-item" href="#keywords">Sökord</a>
         <a class="nav-item" href="#audience">Publik</a>
       </nav>
       <div class="sidebar-footer">
@@ -127,6 +128,24 @@
             <canvas id="chart-sources"></canvas>
           </div>
         </div>
+      </section>
+
+      <section class="table-section keywords-section" id="keywords">
+        <div class="section-head">
+          <h2>Sökord</h2>
+          <p>Organiska Google-sökningar · Kungsbacka-området</p>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Sökord</th>
+              <th>Sessioner</th>
+              <th>Andel</th>
+            </tr>
+          </thead>
+          <tbody id="keywords-body"></tbody>
+        </table>
+        <p class="table-note" id="keywords-note" hidden></p>
       </section>
 
       <section class="table-row" id="audience">
