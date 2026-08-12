@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hardiman Trädvård — Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">H</div>
+        <div>
+          <p class="brand-name">Hardiman Trädvård</p>
+          <p class="brand-url">hardiman.se</p>
+        </div>
+      </div>
+      <nav class="nav">
+        <a class="nav-item active" href="#overview">Översikt</a>
+        <a class="nav-item" href="#traffic">Trafik</a>
+        <a class="nav-item" href="#pages">Sidor</a>
+        <a class="nav-item" href="#audience">Publik</a>
+      </nav>
+      <div class="sidebar-footer">
+        <p class="meta-label">GA4-egendom</p>
+        <p class="meta-value">G-7D1XJL0DVL</p>
+        <p class="sample-badge">Exempeldata</p>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="page-header" id="overview">
+        <div>
+          <h1>Webbanalys</h1>
+          <p class="subtitle" id="date-subtitle">Kungsbacka · senaste 12 dagarna</p>
+        </div>
+        <div class="header-actions">
+          <span class="live-dot" title="Live GA4 ej ansluten"></span>
+          <span class="status-text">Exempeldata — anslut GA4 för live</span>
+        </div>
+      </header>
+
+      <div class="notice">
+        <strong>Exempelvärden</strong> — realistiska uppskattningar för en lokal trädvårdswebbplats. Anslut Google Analytics Data API med en service account för att ersätta med live-data.
+      </div>
+
+      <section class="stats-grid" aria-label="Nyckeltal">
+        <article class="stat-card">
+          <p class="stat-label">Unika besökare</p>
+          <p class="stat-value" id="stat-visitors">—</p>
+          <p class="stat-delta positive" id="stat-visitors-delta">—</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">Sidvisningar</p>
+          <p class="stat-value" id="stat-pageviews">—</p>
+          <p class="stat-delta positive" id="stat-pageviews-delta">—</p>
+        </article>
+        <article class="stat-card accent">
+          <p class="stat-label">Bokningssida</p>
+          <p class="stat-value" id="stat-booking">—</p>
+          <p class="stat-delta" id="stat-booking-rate">—</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">Avvisningsfrekvens</p>
+          <p class="stat-value" id="stat-bounce">—</p>
+          <p class="stat-delta">Mål: &lt; 55%</p>
+        </article>
+        <article class="stat-card">
+          <p class="stat-label">Snitt session</p>
+          <p class="stat-value" id="stat-session">—</p>
+          <p class="stat-delta">Engagerade sessioner</p>
+        </article>
+      </section>
+
+      <section class="chart-section" id="traffic">
+        <div class="section-head">
+          <h2>Dagliga besökare</h2>
+          <p>Unika sessioner per dag — lägre på helger</p>
+        </div>
+        <div class="chart-wrap tall">
+          <canvas id="chart-visitors" aria-label="Dagliga besökare"></canvas>
+        </div>
+      </section>
+
+      <section class="chart-row">
+        <div class="chart-section half">
+          <div class="section-head">
+            <h2>Sidvisningar vs besökare</h2>
+            <p>Jämförelse per dag</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart-comparison"></canvas>
+          </div>
+        </div>
+        <div class="chart-section half">
+          <div class="section-head">
+            <h2>Bokningssida</h2>
+            <p>/booking visningar per dag</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart-booking"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="chart-row" id="pages">
+        <div class="chart-section wide">
+          <div class="section-head">
+            <h2>Populäraste sidor</h2>
+            <p>Faktiska routes på hardiman.se</p>
+          </div>
+          <div class="chart-wrap">
+            <canvas id="chart-pages"></canvas>
+          </div>
+        </div>
+        <div class="chart-section narrow">
+          <div class="section-head">
+            <h2>Trafikkällor</h2>
+            <p>Andel sessioner</p>
+          </div>
+          <div class="chart-wrap donut">
+            <canvas id="chart-sources"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <section class="table-row" id="audience">
+        <div class="table-section">
+          <div class="section-head">
+            <h2>Toppreferrer</h2>
+            <p>Sverige-fokuserad trafik</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Referrer</th>
+                <th>Sessioner</th>
+                <th>Andel</th>
+              </tr>
+            </thead>
+            <tbody id="referrers-body"></tbody>
+          </table>
+        </div>
+
+        <div class="panel-section">
+          <div class="section-head">
+            <h2>Publik</h2>
+            <p>Enheter &amp; dagens snapshot</p>
+          </div>
+          <div class="device-bars">
+            <div class="device-row">
+              <span>Mobil</span>
+              <div class="bar-track"><div class="bar-fill mobile" style="width:62%"></div></div>
+              <span>62%</span>
+            </div>
+            <div class="device-row">
+              <span>Desktop</span>
+              <div class="bar-track"><div class="bar-fill desktop" style="width:33%"></div></div>
+              <span>33%</span>
+            </div>
+            <div class="device-row">
+              <span>Surfplatta</span>
+              <div class="bar-track"><div class="bar-fill tablet" style="width:5%"></div></div>
+              <span>5%</span>
+            </div>
+          </div>
+          <div class="today-box">
+            <p class="today-title" id="today-title">Idag</p>
+            <div class="today-stats">
+              <div><span class="today-num" id="today-visitors">—</span><span>Besökare</span></div>
+              <div><span class="today-num" id="today-pageviews">—</span><span>Sidvisningar</span></div>
+              <div><span class="today-num" id="today-booking">—</span><span>Bokning</span></div>
+            </div>
+            <p class="today-note" id="today-note">—</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

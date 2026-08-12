@@ -1,0 +1,7 @@
+{
+  "name": "hardiman-analytics",
+  "private": true,
+  "dependencies": {
+    "@google-analytics/data": "^4.12.0"
+  }
+}
