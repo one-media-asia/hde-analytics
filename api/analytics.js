@@ -95,6 +95,24 @@ async function fetchKeywords(client, propertyId, dateRange) {
   return { keywords: [], source: null };
 }
 
+function formatTableRows(rows, labelIndex = 0, metricIndex = 0, limit = 6) {
+  const filtered = rows.filter((row) => {
+    const label = row.dimensionValues[labelIndex]?.value || "";
+    return label && label !== "(not set)" && label !== "(not provided)";
+  });
+
+  const total = filtered.reduce(
+    (sum, row) => sum + Number(row.metricValues[metricIndex].value),
+    0
+  );
+
+  return filtered.slice(0, limit).map((row) => {
+    const label = row.dimensionValues[labelIndex].value;
+    const value = Number(row.metricValues[metricIndex].value);
+    return [label, value, formatShare(value, total)];
+  });
+}
+
 function parseCredentials() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
   if (raw) {
@@ -234,6 +252,11 @@ module.exports = async function handler(req, res) {
       deviceRows,
       sessionRows,
       keywordResult,
+      landingRows,
+      exitRows,
+      cityRows,
+      contactSummaryRows,
+      contactDailyRows,
     ] = await Promise.all([
       runReport(client, propertyId, {
         dateRanges: [dateRange],
@@ -288,10 +311,54 @@ module.exports = async function handler(req, res) {
         metrics: [{ name: "averageSessionDuration" }],
       }),
       fetchKeywords(client, propertyId, dateRange),
+      runReport(client, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: "landingPage" }],
+        metrics: [{ name: "sessions" }],
+        orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+        limit: 8,
+      }),
+      runReport(client, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: "pagePath" }],
+        metrics: [{ name: "exits" }],
+        orderBys: [{ metric: { metricName: "exits" }, desc: true }],
+        limit: 8,
+      }),
+      runReport(client, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: "city" }],
+        metrics: [{ name: "activeUsers" }],
+        orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
+        limit: 8,
+      }),
+      runReport(client, propertyId, {
+        dateRanges: [dateRange],
+        metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
+        dimensionFilter: {
+          filter: {
+            fieldName: "pagePath",
+            stringFilter: { matchType: "CONTAINS", value: "/contact" },
+          },
+        },
+      }),
+      runReport(client, propertyId, {
+        dateRanges: [dateRange],
+        dimensions: [{ name: "date" }],
+        metrics: [{ name: "screenPageViews" }],
+        dimensionFilter: {
+          filter: {
+            fieldName: "pagePath",
+            stringFilter: { matchType: "CONTAINS", value: "/contact" },
+          },
+        },
+        orderBys: [{ dimension: { dimensionName: "date" } }],
+      }),
     ]);
 
     const dailyMap = rowsByDate(dailyRows);
     const bookingMap = rowsByDate(bookingRows);
+    const contactMap = rowsByDate(contactDailyRows);
     const dates = buildDateRange(DAYS);
 
     const dateLabels = dates.map(formatGaDate);
@@ -308,6 +375,13 @@ module.exports = async function handler(req, res) {
     const dailyBookingViews = dates.map((d) =>
       Number(bookingMap.get(d)?.metricValues[0].value || 0)
     );
+    const dailyContactViews = dates.map((d) =>
+      Number(contactMap.get(d)?.metricValues[0].value || 0)
+    );
+
+    const landingPages = formatTableRows(landingRows);
+    const exitPages = formatTableRows(exitRows);
+    const demographics = formatTableRows(cityRows);
 
     const topPages = pageRows.map((row) => ({
       path: row.dimensionValues[0].value || "/",
@@ -339,6 +413,13 @@ module.exports = async function handler(req, res) {
     });
 
     const { keywords, source: keywordSource } = keywordResult;
+
+    const contactViews = Number(contactSummaryRows[0]?.metricValues[0].value || 0);
+    const contactUsers = Number(contactSummaryRows[0]?.metricValues[1].value || 0);
+    const totalVisitors = dailyVisitors.reduce((sum, n) => sum + n, 0);
+    const contactRate = totalVisitors
+      ? Number(((contactUsers / totalVisitors) * 100).toFixed(1))
+      : 0;
 
     const deviceTotal = deviceRows.reduce(
       (sum, row) => sum + Number(row.metricValues[0].value),
@@ -376,11 +457,20 @@ module.exports = async function handler(req, res) {
       dailyPageViews,
       dailyBounceRate,
       dailyBookingViews,
+      dailyContactViews,
       topPages,
       trafficSources,
       referrers,
       keywords,
       keywordSource,
+      landingPages,
+      exitPages,
+      demographics,
+      contact: {
+        views: contactViews,
+        users: contactUsers,
+        rate: contactRate,
+      },
       devices,
       avgSessionMinutes,
     });
