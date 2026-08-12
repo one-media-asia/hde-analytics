@@ -214,6 +214,35 @@ async function runReport(client, propertyId, request) {
   return response.rows || [];
 }
 
+async function safeRunReport(client, propertyId, request, label) {
+  try {
+    return await runReport(client, propertyId, request);
+  } catch (error) {
+    console.warn(`GA4 report failed (${label}):`, error.message);
+    return [];
+  }
+}
+
+async function fetchExitPages(client, propertyId, dateRange) {
+  const exits = await safeRunReport(client, propertyId, {
+    dateRanges: [dateRange],
+    dimensions: [{ name: "pagePath" }],
+    metrics: [{ name: "exits" }],
+    orderBys: [{ metric: { metricName: "exits" }, desc: true }],
+    limit: 8,
+  }, "exitPages");
+
+  if (exits.length) return exits;
+
+  return safeRunReport(client, propertyId, {
+    dateRanges: [dateRange],
+    dimensions: [{ name: "pagePath" }],
+    metrics: [{ name: "screenPageViews" }],
+    orderBys: [{ metric: { metricName: "screenPageViews" }, desc: true }],
+    limit: 8,
+  }, "exitPagesFallback");
+}
+
 module.exports = async function handler(req, res) {
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -311,28 +340,22 @@ module.exports = async function handler(req, res) {
         metrics: [{ name: "averageSessionDuration" }],
       }),
       fetchKeywords(client, propertyId, dateRange),
-      runReport(client, propertyId, {
+      safeRunReport(client, propertyId, {
         dateRanges: [dateRange],
         dimensions: [{ name: "landingPage" }],
         metrics: [{ name: "sessions" }],
         orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
         limit: 8,
-      }),
-      runReport(client, propertyId, {
-        dateRanges: [dateRange],
-        dimensions: [{ name: "pagePath" }],
-        metrics: [{ name: "exits" }],
-        orderBys: [{ metric: { metricName: "exits" }, desc: true }],
-        limit: 8,
-      }),
-      runReport(client, propertyId, {
+      }, "landingPages"),
+      fetchExitPages(client, propertyId, dateRange),
+      safeRunReport(client, propertyId, {
         dateRanges: [dateRange],
         dimensions: [{ name: "city" }],
         metrics: [{ name: "activeUsers" }],
         orderBys: [{ metric: { metricName: "activeUsers" }, desc: true }],
         limit: 8,
-      }),
-      runReport(client, propertyId, {
+      }, "demographics"),
+      safeRunReport(client, propertyId, {
         dateRanges: [dateRange],
         metrics: [{ name: "screenPageViews" }, { name: "activeUsers" }],
         dimensionFilter: {
@@ -341,8 +364,8 @@ module.exports = async function handler(req, res) {
             stringFilter: { matchType: "CONTAINS", value: "/contact" },
           },
         },
-      }),
-      runReport(client, propertyId, {
+      }, "contactSummary"),
+      safeRunReport(client, propertyId, {
         dateRanges: [dateRange],
         dimensions: [{ name: "date" }],
         metrics: [{ name: "screenPageViews" }],
@@ -353,7 +376,7 @@ module.exports = async function handler(req, res) {
           },
         },
         orderBys: [{ dimension: { dimensionName: "date" } }],
-      }),
+      }, "contactDaily"),
     ]);
 
     const dailyMap = rowsByDate(dailyRows);
