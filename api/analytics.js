@@ -46,16 +46,59 @@ function formatShare(value, total) {
 
 function parseCredentials() {
   const raw = process.env.GOOGLE_SERVICE_ACCOUNT_JSON;
-  if (!raw) return null;
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return null;
+  if (raw) {
+    const candidates = [raw.trim()];
+    if (candidates[0].startsWith('"') && candidates[0].endsWith('"')) {
+      candidates.push(candidates[0].slice(1, -1));
+    }
+
+    for (const candidate of candidates) {
+      try {
+        return JSON.parse(candidate);
+      } catch {
+        try {
+          return JSON.parse(Buffer.from(candidate, "base64").toString("utf8"));
+        } catch {
+          // try next candidate
+        }
+      }
+    }
   }
+
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  if (clientEmail && privateKey) {
+    return {
+      type: "service_account",
+      project_id: process.env.GOOGLE_PROJECT_ID || "hardiman-analytics",
+      client_email: clientEmail,
+      private_key: privateKey.replace(/\\n/g, "\n"),
+    };
+  }
+
+  return null;
 }
 
-function getClient() {
+function getCredentialStatus() {
+  const propertyId = process.env.GA4_PROPERTY_ID?.trim();
+  const hasJson = Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_JSON?.trim());
+  const hasSplit = Boolean(
+    process.env.GOOGLE_CLIENT_EMAIL?.trim() && process.env.GOOGLE_PRIVATE_KEY?.trim()
+  );
   const credentials = parseCredentials();
+
+  const missing = [];
+  if (!propertyId) missing.push("GA4_PROPERTY_ID");
+  if (!hasJson && !hasSplit) {
+    missing.push("GOOGLE_SERVICE_ACCOUNT_JSON");
+  } else if (!credentials) {
+    missing.push("GOOGLE_SERVICE_ACCOUNT_JSON (invalid JSON)");
+  }
+
+  return { propertyId, credentials, missing };
+}
+
+function getClient(credentials) {
   if (!credentials) return null;
   return new BetaAnalyticsDataClient({ credentials });
 }
@@ -71,6 +114,27 @@ function rowsByDate(rows) {
 
 function sortedDates(map) {
   return [...map.keys()].sort();
+}
+
+function ymdFromDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
+}
+
+function buildDateRange(days) {
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - (days - 1));
+
+  const dates = [];
+  const cursor = new Date(start);
+  while (cursor <= end) {
+    dates.push(ymdFromDate(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return dates;
 }
 
 async function runReport(client, propertyId, request) {
@@ -95,13 +159,14 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  const propertyId = process.env.GA4_PROPERTY_ID;
-  const client = getClient();
+  const { propertyId, credentials, missing } = getCredentialStatus();
+  const client = getClient(credentials);
 
   if (!propertyId || !client) {
     return res.status(503).json({
       live: false,
       error: "GA4 credentials not configured",
+      missing,
       measurementId: MEASUREMENT_ID,
     });
   }
@@ -174,14 +239,19 @@ module.exports = async function handler(req, res) {
 
     const dailyMap = rowsByDate(dailyRows);
     const bookingMap = rowsByDate(bookingRows);
-    const dates = sortedDates(dailyMap);
+    const dates = buildDateRange(DAYS);
 
     const dateLabels = dates.map(formatGaDate);
-    const dailyVisitors = dates.map((d) => Number(dailyMap.get(d).metricValues[0].value));
-    const dailyPageViews = dates.map((d) => Number(dailyMap.get(d).metricValues[1].value));
-    const dailyBounceRate = dates.map((d) =>
-      Number((Number(dailyMap.get(d).metricValues[2].value) * 100).toFixed(1))
+    const dailyVisitors = dates.map((d) =>
+      Number(dailyMap.get(d)?.metricValues[0].value || 0)
     );
+    const dailyPageViews = dates.map((d) =>
+      Number(dailyMap.get(d)?.metricValues[1].value || 0)
+    );
+    const dailyBounceRate = dates.map((d) => {
+      const raw = dailyMap.get(d)?.metricValues[2].value;
+      return raw ? Number((Number(raw) * 100).toFixed(1)) : 0;
+    });
     const dailyBookingViews = dates.map((d) =>
       Number(bookingMap.get(d)?.metricValues[0].value || 0)
     );
@@ -266,3 +336,4 @@ module.exports = async function handler(req, res) {
     });
   }
 };
+
