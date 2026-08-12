@@ -66,6 +66,11 @@
           <p class="stat-value" id="stat-booking">—</p>
           <p class="stat-delta" id="stat-booking-rate">—</p>
         </article>
+        <article class="stat-card accent">
+          <p class="stat-label">Kontakt</p>
+          <p class="stat-value" id="stat-contact">—</p>
+          <p class="stat-delta" id="stat-contact-rate">—</p>
+        </article>
         <article class="stat-card">
           <p class="stat-label">Avvisningsfrekvens</p>
           <p class="stat-value" id="stat-bounce">—</p>
@@ -148,7 +153,59 @@
         <p class="table-note" id="keywords-note" hidden></p>
       </section>
 
+      <section class="table-row" id="journeys">
+        <div class="table-section">
+          <div class="section-head">
+            <h2>Landningssidor</h2>
+            <p>Första sidan besökare ser</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Sida</th>
+                <th>Sessioner</th>
+                <th>Andel</th>
+              </tr>
+            </thead>
+            <tbody id="landing-body"></tbody>
+          </table>
+        </div>
+        <div class="table-section">
+          <div class="section-head">
+            <h2>Utgångssidor</h2>
+            <p>Sista sidan innan besökaren lämnar</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Sida</th>
+                <th>Utgångar</th>
+                <th>Andel</th>
+              </tr>
+            </thead>
+            <tbody id="exit-body"></tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="table-row" id="audience">
+        <div class="table-section">
+          <div class="section-head">
+            <h2>Demografi</h2>
+            <p>Städer · Sverige-fokuserad trafik</p>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Stad</th>
+                <th>Besökare</th>
+                <th>Andel</th>
+              </tr>
+            </thead>
+            <tbody id="demographics-body"></tbody>
+          </table>
+        </div>
+
         <div class="table-section">
           <div class="section-head">
             <h2>Toppreferrer</h2>
@@ -194,6 +251,7 @@
               <div><span class="today-num" id="today-visitors">—</span><span>Besökare</span></div>
               <div><span class="today-num" id="today-pageviews">—</span><span>Sidvisningar</span></div>
               <div><span class="today-num" id="today-booking">—</span><span>Bokning</span></div>
+              <div><span class="today-num" id="today-contact">—</span><span>Kontakt</span></div>
             </div>
             <p class="today-note" id="today-note">—</p>
           </div>
