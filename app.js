@@ -34,6 +34,16 @@ const SAMPLE_DATA = {
     ["instagram.com", 28, "3,3%"],
     ["eniro.se", 18, "2,1%"],
   ],
+  keywords: [
+    ["trädfällning kungsbacka", 86, "24,1%"],
+    ["trädvård kungsbacka", 64, "17,9%"],
+    ["trädgårdsservice kungsbacka", 41, "11,5%"],
+    ["beskärning träd", 38, "10,6%"],
+    ["stubbfräsning", 29, "8,1%"],
+    ["trädgårdsarbete", 24, "6,7%"],
+    ["häckklippning kungsbacka", 19, "5,3%"],
+    ["trädfällare göteborg", 14, "3,9%"],
+  ],
   devices: { mobile: 62, desktop: 33, tablet: 5 },
   avgSessionMinutes: 2.1,
 };
@@ -175,6 +185,39 @@ function renderReferrers() {
     .join("");
 }
 
+function renderKeywords(isLive) {
+  const tbody = document.getElementById("keywords-body");
+  const note = document.getElementById("keywords-note");
+  const keywords = DATA.keywords || [];
+
+  if (!keywords.length) {
+    tbody.innerHTML =
+      `<tr><td colspan="3" class="empty-cell">Inga sökord registrerade ännu</td></tr>`;
+    note.hidden = false;
+    note.textContent = isLive
+      ? "Anslut Google Search Console till GA4 (Admin → Produktlänkar) för organiska sökord."
+      : "Exempeldata visas när live GA4 saknar sökordsdata.";
+    return;
+  }
+
+  tbody.innerHTML = keywords
+    .map(
+      ([term, sessions, share]) =>
+        `<tr><td>${term}</td><td>${sessions}</td><td>${share}</td></tr>`
+    )
+    .join("");
+
+  note.hidden = !isLive || DATA.keywordSource !== "searchConsole";
+  if (!note.hidden) {
+    note.textContent = "Data från Google Search Console via GA4.";
+  } else if (isLive && DATA.keywordSource === "utmTerm") {
+    note.hidden = false;
+    note.textContent = "Data från UTM-term (sessionManualTerm).";
+  } else {
+    note.hidden = true;
+  }
+}
+
 function destroyCharts() {
   for (const chart of charts) chart.destroy();
   charts = [];
@@ -310,6 +353,7 @@ function renderDashboard(isLive) {
   renderStats();
   renderDevices();
   renderReferrers();
+  renderKeywords(isLive);
   renderCharts();
 }
 
