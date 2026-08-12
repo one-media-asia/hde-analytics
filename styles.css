@@ -451,6 +451,22 @@ tbody tr:hover {
   color: var(--text-muted);
 }
 
+.keywords-section {
+  margin-bottom: 24px;
+}
+
+.table-note {
+  margin: 12px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.empty-cell {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+}
+
 @media (max-width: 1100px) {
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
