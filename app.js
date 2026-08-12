@@ -11,6 +11,7 @@ const SAMPLE_DATA = {
   dailyPageViews: [142, 178, 158, 196, 184, 118, 104, 208, 228, 188, 224, 248],
   dailyBounceRate: [58.2, 56.4, 57.8, 54.1, 55.6, 62.3, 64.8, 52.9, 51.2, 55.4, 50.8, 49.6],
   dailyBookingViews: [8, 11, 9, 14, 12, 5, 4, 16, 18, 13, 17, 19],
+  dailyContactViews: [5, 7, 6, 9, 8, 3, 2, 11, 12, 8, 10, 11],
   topPages: [
     { path: "/", views: 412 },
     { path: "/services", views: 286 },
@@ -44,6 +45,31 @@ const SAMPLE_DATA = {
     ["häckklippning kungsbacka", 19, "5,3%"],
     ["trädfällare göteborg", 14, "3,9%"],
   ],
+  landingPages: [
+    ["/", 312, "42,1%"],
+    ["/services", 148, "20,0%"],
+    ["/pricing", 96, "13,0%"],
+    ["/booking", 74, "10,0%"],
+    ["/contact", 58, "7,8%"],
+    ["/work", 49, "6,6%"],
+  ],
+  exitPages: [
+    ["/", 186, "28,4%"],
+    ["/contact", 98, "15,0%"],
+    ["/booking", 84, "12,8%"],
+    ["/services", 72, "11,0%"],
+    ["/pricing", 64, "9,8%"],
+    ["/work", 41, "6,3%"],
+  ],
+  demographics: [
+    ["Kungsbacka", 218, "31,2%"],
+    ["Göteborg", 142, "20,3%"],
+    ["Mölndal", 86, "12,3%"],
+    ["Halmstad", 54, "7,7%"],
+    ["Varberg", 48, "6,9%"],
+    ["Stockholm", 36, "5,2%"],
+  ],
+  contact: { views: 96, users: 72, rate: 11.5 },
   devices: { mobile: 62, desktop: 33, tablet: 5 },
   avgSessionMinutes: 2.1,
 };
@@ -134,6 +160,7 @@ function renderStats() {
   document.getElementById("stat-visitors").textContent = formatNumber(totalVisitors);
   document.getElementById("stat-pageviews").textContent = formatNumber(totalPageViews);
   document.getElementById("stat-booking").textContent = String(totalBooking);
+  document.getElementById("stat-contact").textContent = String(DATA.contact?.views ?? 0);
   document.getElementById("stat-bounce").textContent = `${avgBounce.toFixed(1).replace(".", ",")}%`;
   document.getElementById("stat-session").textContent =
     `${String(DATA.avgSessionMinutes).replace(".", ",")} min`;
@@ -144,10 +171,14 @@ function renderStats() {
     `${pageViewChange >= 0 ? "+" : ""}${pageViewChange.toFixed(1).replace(".", ",")}% idag`;
   document.getElementById("stat-booking-rate").textContent =
     `${bookingRate}% av besökare når bokning`;
+  document.getElementById("stat-contact-rate").textContent =
+    `${String(DATA.contact?.rate ?? 0).replace(".", ",")}% av besökare når kontakt`;
 
   document.getElementById("today-visitors").textContent = DATA.dailyVisitors[last];
   document.getElementById("today-pageviews").textContent = DATA.dailyPageViews[last];
   document.getElementById("today-booking").textContent = DATA.dailyBookingViews[last];
+  document.getElementById("today-contact").textContent =
+    DATA.dailyContactViews?.[last] ?? 0;
   document.getElementById("today-note").textContent =
     `Sidvisningar ${pageViewChange >= 0 ? "upp" : "ner"} ${Math.abs(pageViewChange).toFixed(1).replace(".", ",")}% jämfört med igår`;
 
@@ -175,14 +206,36 @@ function renderDevices() {
   }
 }
 
-function renderReferrers() {
-  const tbody = document.getElementById("referrers-body");
-  tbody.innerHTML = DATA.referrers
+function renderTableRows(tbodyId, rows, emptyMessage) {
+  const tbody = document.getElementById(tbodyId);
+  if (!rows?.length) {
+    tbody.innerHTML =
+      `<tr><td colspan="3" class="empty-cell">${emptyMessage}</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows
     .map(
-      ([ref, sessions, share]) =>
-        `<tr><td>${ref}</td><td>${sessions}</td><td>${share}</td></tr>`
+      ([label, value, share]) =>
+        `<tr><td>${label}</td><td>${value}</td><td>${share}</td></tr>`
     )
     .join("");
+}
+
+function renderReferrers() {
+  renderTableRows("referrers-body", DATA.referrers, "Inga referrers registrerade");
+}
+
+function renderLandingPages() {
+  renderTableRows("landing-body", DATA.landingPages, "Inga landningssidor registrerade");
+}
+
+function renderExitPages() {
+  renderTableRows("exit-body", DATA.exitPages, "Inga utgångssidor registrerade");
+}
+
+function renderDemographics() {
+  renderTableRows("demographics-body", DATA.demographics, "Ingen demografidata ännu");
 }
 
 function renderKeywords(isLive) {
@@ -353,6 +406,9 @@ function renderDashboard(isLive) {
   renderStats();
   renderDevices();
   renderReferrers();
+  renderLandingPages();
+  renderExitPages();
+  renderDemographics();
   renderKeywords(isLive);
   renderCharts();
 }
